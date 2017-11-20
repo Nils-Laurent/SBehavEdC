@@ -1,0 +1,20 @@
+<<
+//troopers = ["st1", "st2"]
+troopers = list_str("str", 1, 10)
+
+behaved_factor_code id_label_1
+START_BEHAVED
+	[BEHAVED_CODE]
+END_BEHAVED
+
+caffect_multiple(FLUSH, troopers, id_label_1)
+continue_file("file_name")
+>>
+
+...
+
+affect ( "rosh", /*@AFFECT_TYPE*/ FLUSH )
+{
+	<<@id_label_1>>
+}
+	

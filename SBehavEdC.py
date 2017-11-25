@@ -36,16 +36,18 @@ class CSBracketToken(object):
 class EqualToken(object):
     def __repr__(self):
         return 'EqualToken'
+    def __str__(self):
+        return 'EqualToken'
 
 class CommaToken(object):
     def __repr__(self):
         return 'CommaToken'
 
 class IdentifierToken(object):
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, value):
+        self.value = value
     def __repr__(self):
-        return 'IdentifierToken('+self.name+')'
+        return 'IdentifierToken('+self.value+')'
 
 class NumberToken(object):
     def __init__(self, value):
@@ -70,6 +72,7 @@ class CharacterToken(object):
     def __eq__(self, other):
         return isinstance(other, CharacterToken) and self.char == other.char
     def __ne__(self, other): return not self == other
+
 
 class Lexer:
     def __init__(self, fname):
@@ -207,97 +210,145 @@ class Lexer:
             print("token = ", token)
             i = i + 1
 
+
 class Error:
     def token(self, token, expected):
-            print("Unexpected token ", self.token, " ... expected ", expected)
-            exit()
+        print("Unexpected token ", self.token.__str__(), " : expected ", expected)
+        time.sleep(1)
+        raise Exception("Unexpected token")
+
 
 class Parser:
     def __init__(self, fname):
-        print("toto")
         self.lex = Lexer(fname)
         self.err = Error()
         self.gen = self.lex.next()
+
+    def advance(self):
         self.token = next(self.gen)
-        self.func = Function()
-        
+
+    def expect(self, token, type):
+        if not isinstance(token, type):
+            self.err.token(token, type)
+    def expect_multiple(self, token, types):
+        match = False
+        for t in types:
+            match = match or isinstance(token, t)
+        if not match:
+            self.err.token(token, types)
+
+    def parse(self):
         # SB script must start with SB code
+        self.advance()
         if not isinstance(self.token, StartSBCode):
             self.err.token(self.token, StartSBCode)
-        parse_SBProg()
+        self.advance()
+
+        t = self.parse_SBProg()
+        if not isinstance(self.token, EndSBCode):
+            self.err.token(self.token, EndSBCode)
+        return t
     
     def parse_SBProg(self):
-        self.token = next(self.gen)
-        parse_instructions()
-
-    def parse_instructions(self):
+        t = TProg()
         while isinstance(self.token, IdentifierToken):
-            self.token = next(self.gen)
-            parse_inst()
+            name = self.token.value
+            self.advance()
+            t.add_instruction(self.parse_inst(name))
+        if not isinstance(self.token, EndSBCode):
+            self.err.token(self.token, EndSBCode)
+        return t
+
     def parse_inst(self, identifier):
-        if self.func.isFunction(identifier):
-            parse_function(identifier)
+        t = TInst()
+        if isinstance(self.token, EqualToken):
+            t.set_inst(self.parse_variable(identifier))
         else:
-            parse_variable(identifier)
+            t.set_inst(self.parse_function(identifier))
+        return t
 
     def parse_function(self, identifier):
         t = TFunction(identifier)
+        argT = [StrToken, NumberToken, IdentifierToken]
 
-        self.token = next(self.gen)
         if isinstance(self.token, OBracketToken):
-            self.token = next(self.gen)
-            if isinstance(self.token, IdentifierToken):
-                t.add_argument(self.token.name)
-            self.token = next(self.gen)
+            self.advance()
+            self.expect_multiple(self.token, argT)
+            t.add_argument(self.token.value)
+            self.advance()
             while isinstance(self.token, CommaToken):
-                self.token = next(self.gen)
-                if isinstance(self.token, IdentifierToken):
-                    t.add_argument(self.token.name)
-                self.token = next(self.gen)
-            if not isinstance(self.token, CBracketToken):
-                self.err.token(self.token, CBracketToken)
+                self.advance()
+                self.expect_multiple(self.token, argT)
+                t.add_argument(self.token.value)
+                self.advance()
+            self.expect(self.token, CBracketToken)
+            self.advance()
         elif isinstance(self.token, IdentifierToken):
             # saving BehavEd code
             t.add_argument(self.token.value)
-            self.token = next(self.gen)
+            self.advance()
             if isinstance(self.token, BehavEdToken):
                 t.add_argument(self.token.value)
+            self.advance()
+        return t
 
     def parse_variable(self, identifier):
-        self.token = next(self.gen)
         t = TVariable(identifier)
-        if isinstance(self.token, EqualToken):
-            self.token = next(self.gen)
-            if isinstance(self.token, StrToken):
-                t.set_value(self.token.value)
-            elif isinstance(self.token, OSBracketToken):
-                value = []
-                self.token = next(self.gen)
-                if isinstance(self.token, StrToken):
-                    value.append(StrToken.value)
-            elif isinstance(self.token, IdentifierToken):
-                t.set_value(self.parse_function(self.token.name))
+        self.expect(self.token, EqualToken)
+        self.advance()
+        if isinstance(self.token, StrToken):
+            t.set_value(self.token.value)
+            self.advance()
+        elif isinstance(self.token, OSBracketToken):
+            self.advance()
+            value = []
+            self.expect(self.token, StrToken)
+            value.append(self.token.value)
+            self.advance()
 
-        else:
-            self.err.token(self.token, EqualToken)
-        
-class Function(self):
-    def __init__(self):
-        self.functions = ["continue_file", "caffect_multiple", "list_str", "behaved_factor_code"]
+            while isinstance(self.token, CommaToken):
+                self.advance()
+                self.expect(self.token, StrToken)
+                value.append(self.token.value)
+                self.advance()
+            self.expect(self.token, CSBracketToken)
+            t.set_value(value)
+            self.advance()
+        elif isinstance(self.token, IdentifierToken):
+            name = self.token.value
+            self.advance()
+            t.set_value(self.parse_function(name))
 
-    def is_function(self, identifier):
-        return (identifier in self.functions)
+        return t
 
 
 class TProg:
     def __init__(self):
         self.inst = []
     def add_instruction(self, instruction):
-        self.inst.append(variables)
+        self.inst.append(instruction)
+    def print(self):
+        print("PROGRAM")
+        for i in self.inst:
+            i.print(0)
+    def gen_code(self, env):
+        for i in self.inst:
+            i.print(0)
+            i.gen_code(env)
+
 
 class TInst:
     def __init__(self):
-        pass
+        self.inst = None
+    def set_inst(self, inst):
+        self.inst = inst
+    def print(self, n):
+        print(n*"  ", "INSTRUCTION")
+        self.inst.print(n+1)
+    def gen_code(self, env):
+        self.inst.gen_code(env)
+
+
 class TFunction:
     def __init__(self, func_name):
         self.name = func_name
@@ -306,29 +357,136 @@ class TFunction:
     def add_argument(self, arg):
         self.arguments.append(arg)
 
-class TBehavedCode:
-    def __init__(self, code):
-        self.code = code
-    
+    def print(self, n):
+        args = ""
+        for a in self.arguments:
+            args += a.__str__() + " "
+        print(n*"  ", self.name, "(", args, ")")
+
+    def __str__(self):
+        args = ""
+        for a in self.arguments:
+            args += a.__str__() + " "
+        return self.name+"("+args+")"
+
+    def gen_code(self, env):
+        env.func.exec(self.name, self.arguments)
+
+    def get_value_from_function(self, env):
+        if not env.func.in_affect_function(self.name):
+            raise Exception("Cannot assign", self.name, "to variable")
+        return env.func.list_str(self.arguments)
+
+
 class TVariable:
     def __init__(self, var_name):
         self.name = var_name
+        self.value = None
+
     def set_value(self, value):
         self.value = value
+
+    def print(self, n):
+        print(n*"  ", self.name, "=", self.value)
+
+    def gen_code(self, env):
+        if isinstance(self.value, TFunction):
+            env.set_var(self.name, self.value.get_value_from_function(env))
+        else:
+            env.set_var(self.name, self.value)
+
+
+class TBehavedCode:
+    def __init__(self, code):
+        self.code = code
+
+    def print(self):
+        print(self.code)
+
+
+class Compiler:
+    def __init__(self, file):
+        self.file = file
+        self.parser = Parser(file)
+        self.env = Env()
+
+    def compile(self):
+        tree = self.parser.parse()
+        tree.gen_code(self.env)
+
+
+class Env:
+    def __init__(self):
+        self.vars = {}
+        self.code = {}
+        self.func = Function(self)
+
+    def set_var(self, name, value):
+        self.vars[name] = value
+
+    def get_value(self, name):
+        if name in self.vars.keys():
+            return self.vars[name]
+        else:
+            raise Exception("Undeclared variable use :", name)
+
+    def set_code(self, name, code):
+        self.vars[name] = code
+
+    def get_code(self, name):
+        if name in self.vars.keys():
+            return self.vars[name]
+        else:
+            raise Exception("Undeclared factor code use :", name)
+
+
+class Function:
+    def __init__(self, env):
+        self.functions = ["continue_file", "caffect_multiple", "behaved_factor_code", "list_str"]
+        self.affect_functions = ["list_str"]
+        self.env = env
+
+    def in_affect_function(self, name):
+        return name in self.affect_functions
+
+    def is_function(self, identifier):
+        return (identifier in self.functions)
+
+    def exec(self, name, args):
+        getattr(self, name)(args)
+
+    def continue_file(self, args):
+        print("continue_file")
+
+    def caffect_multiple(self, args):
+        print("caffect_multiple")
+
+    def list_str(self, args):
+        list = []
+        a = int(args[1])
+        b = int(args[2])
+        for i in range(a, b): # todo : add + 1 à supp
+            list.append(args[0] + str(i))
+        return list
+
+    def behaved_factor_code(self, args):
+        print("behaved_factor_code")
+
 
 class Types:
     def __init__(self):
         self.str = "str"
         self.tab = "tab"
 
-if len(sys.argv) == 2:
-    cfile = sys.argv[1]
+
+if True or len(sys.argv) == 2:
+    # cfile = sys.argv[1]
+    cfile = "C:\\Users\\Nils\\Desktop\\SBehavedC\\ex.sb"
     print("compiling :", cfile)
-    parser = Parser(cfile)
-    parser.parseSBProg
+    c = Compiler(cfile)
+    c.compile()
 else:
     print("usage :")
     print("SBehavEd.py <file_to_compile>")
 print()
 print("[end]")
-time.sleep(3)

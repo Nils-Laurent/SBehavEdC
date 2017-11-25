@@ -1,11 +1,14 @@
 <<
-//troopers = ["st1", "st2"]
+// test comment
+troopers = ["st1", "st2"]
 troopers = list_str("str", 1, 10)
 
 behaved_factor_code id_label_1
 START_BEHAVED
 	[BEHAVED_CODE]
 END_BEHAVED
+
+behaved_factor_code(id_label_1, source_label)
 
 caffect_multiple(FLUSH, troopers, id_label_1)
 continue_file("file_name")

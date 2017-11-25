@@ -61,12 +61,6 @@ class StrToken(object):
     def __repr__(self):
         return 'StrToken('+self.value+')'
 
-class BehavEdToken(object):
-    def __init__(self, value):
-        self.value = value
-    def __repr__(self):
-        return 'StrToken('+self.value+')'
-
 class CharacterToken(object):
     def __init__(self, char): self.char = char
     def __eq__(self, other):
@@ -91,24 +85,6 @@ class Lexer:
             self.current = self.buf[self.pos]
         else:
             self.current = None
-
-    def _get_behaved(self):
-        start_pos = self.pos
-        end_BehavEd = "END_BEHAVED"
-        eB_len = len(end_BehavEd)
-        while self.buf[self.pos:self.pos+eB_len] != end_BehavEd and self.current:
-            self._advance()
-            while self.current != 'E' and self.current:
-                self._advance()
-        if not self.current:
-            raise Exception("END_BEHAVED not found, position = "+self.pos)
-        end_pos = self.pos
-        self.pos = self.pos + eB_len
-        if self.pos < self.buf_len:
-            self.current = self.buf[self.pos]
-        else:
-            self.current = None
-        return self.buf[start_pos:end_pos]
         
     def next(self):
         while self.current:
@@ -121,11 +97,8 @@ class Lexer:
                 while self.current.isalnum() or self.current in self.id_symbols:
                     id_str += self.current
                     self._advance()
-                if id_str == "START_BEHAVED":
-                    behaved_str = self._get_behaved()
-                    yield BehavEdToken(behaved_str)
-                else:
-                    yield IdentifierToken(id_str)
+
+                yield IdentifierToken(id_str)
             # Number
             elif self.current.isdigit():
                 num_str = ''
@@ -271,25 +244,18 @@ class Parser:
         t = TFunction(identifier)
         argT = [StrToken, NumberToken, IdentifierToken]
 
-        if isinstance(self.token, OBracketToken):
+        self.expect(self.token, OBracketToken)
+        self.advance()
+        self.expect_multiple(self.token, argT)
+        t.add_argument(self.token.value)
+        self.advance()
+        while isinstance(self.token, CommaToken):
             self.advance()
             self.expect_multiple(self.token, argT)
             t.add_argument(self.token.value)
             self.advance()
-            while isinstance(self.token, CommaToken):
-                self.advance()
-                self.expect_multiple(self.token, argT)
-                t.add_argument(self.token.value)
-                self.advance()
-            self.expect(self.token, CBracketToken)
-            self.advance()
-        elif isinstance(self.token, IdentifierToken):
-            # saving BehavEd code
-            t.add_argument(self.token.value)
-            self.advance()
-            if isinstance(self.token, BehavEdToken):
-                t.add_argument(self.token.value)
-            self.advance()
+        self.expect(self.token, CBracketToken)
+        self.advance()
         return t
 
     def parse_variable(self, identifier):

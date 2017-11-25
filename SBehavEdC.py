@@ -5,6 +5,7 @@ from shutil import copyfile
 import sys
 import time
 import os
+import subprocess
 
 class EOFToken(object):
     def __repr__(self):
@@ -382,6 +383,7 @@ class Compiler:
         tree = self.parser.parse()
         tree.gen_code(self.env)
         self.env.func.final_code_gen()
+        subprocess.check_call(["IBIze.exe", self.env.dest])
 
 
 class Env:
@@ -494,8 +496,7 @@ class Function:
 
 
 if True or len(sys.argv) == 2:
-    # cfile = sys.argv[1]
-    cfile = "C:\\Users\\Nils\\Desktop\\SBehavedC\\ex.sb"
+    cfile = sys.argv[1]
     print("compiling :", cfile)
     c = Compiler(cfile)
     c.compile()

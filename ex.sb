@@ -1,8 +1,8 @@
 <<
 //test comment
+continue_file("ex_c.txt")
 troopers = ["st1", "st2"]
 troopers = list_str("str", 1, 10)
 behaved_factor_code(dest_label, src_label)
-caffect_multiple(FLUSH, troopers, id_label_1)
-continue_file("file_name")
+caffect_multiple(troopers, FLUSH, dest_label)
 >>

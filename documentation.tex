@@ -1,0 +1,152 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% load symbol definitions
+\usepackage{textcomp}
+% auto escape
+\usepackage{underscore}
+
+\usepackage[left=2.5cm,right=2.5cm,top=1cm,bottom=2cm]{geometry}
+
+% code
+\usepackage{listings}
+
+\title{SBehavEd language documentation}
+\author{Nils Laurent, 2A Apprentice at Ensimag}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Files}
+Use two files :\\
+\texttt{<file_name>.txt} containing BehavEd code\\
+\texttt{<file_name>.sb} containing SBehavEd code\\
+CAUTION : \texttt{file_name} must be indentical for the \texttt{.txt} and \texttt{.sb} files. This is how the compiler associate the BehavEd file to the SBehavEd file.
+
+\section{Values}
+Regexp definition of values
+\subsection{Identifier}
+\texttt{[a-zA-Z]+[a-zA-Z0-9]*}
+\subsection{String}
+\texttt{"[a-zA-Z0-9]*"}
+\subsection{Number}
+\texttt{[0-9]+}
+
+
+\section{Variables}
+\subsection{Strings}
+\begin{lstlisting}
+variable_name = "string"
+\end{lstlisting}
+\subsection{Arrays}
+\begin{lstlisting}
+variable_name = ["array", "of", "strings"]
+\end{lstlisting}
+
+\newpage
+\section{Identify BehavEd code and positions}
+\subsection{Identify BehavEd code}
+Use of \texttt{<<identifier>>} in comments surrounding BehavEd source code
+\subsection{Identify positions in code}
+Use of \texttt{<<@identifier>>} to create a label
+\subsection{Example}
+Copy animation of the "jawa" entity to the "rax" entity\\
+In the BehavEd source file \texttt{source.txt} :
+\begin{lstlisting}
+affect ( "jawa", /*@AFFECT_TYPE*/ FLUSH )
+{
+
+	rem ( "<<jawa_dance>>" );
+
+	task ( "back" )
+	{
+		set ( "SET_ANIM_BOTH", "BOTH_ATTACK_BACK" );
+	}
+
+
+	loop ( -1 )
+	{
+
+		loop ( 1 )
+		{
+			do ( "back" );
+			wait ( 300.000 );
+		}
+
+	}
+
+	rem ( "<<jawa_dance>>" );
+
+}
+
+affect ( "rax", /*@AFFECT_TYPE*/ FLUSH )
+{
+
+	rem ( "<<@rax_affect>>" );
+
+}
+\end{lstlisting}
+In the SBehavEd source file \texttt{source.sb} :
+\begin{lstlisting}
+continue_file("out.txt")
+behaved_factor_code(rax_affect, jawa_dance)
+\end{lstlisting}
+
+
+\newpage
+\section{Functions}
+
+\subsection{\texttt{continue_file}}
+\subsubsection*{prototype}
+\begin{lstlisting}
+continue_file(file_name)
+\end{lstlisting}
+\subsubsection*{argument type}
+\texttt{file_name : String}
+\subsubsection*{argument constraint}
+\texttt{file_name : has to be a valid file name}
+
+\subsection{\texttt{caffect_multiple}}
+\subsubsection*{prototype}
+\begin{lstlisting}
+caffect_multiple(name_list, affect_type, destination_label)
+\end{lstlisting}
+\begin{lstlisting}
+caffect_multiple(name, affect_type, destination_label)
+\end{lstlisting}
+\subsubsection*{argument type}
+\texttt{name : String}\\
+\texttt{name_list : Array of strings}\\
+\texttt{affect_type : Identifier}\\
+\texttt{destination_label : Identifier}
+
+\subsection{\texttt{list_str}}
+\subsubsection*{prototype}
+\begin{lstlisting}
+list_str(name, start_number, end_number)
+\end{lstlisting}
+\subsubsection*{argument type}
+\texttt{name : String}\\
+\texttt{start_number : Number}\\
+\texttt{end_number : Number}
+\subsubsection*{return value}
+\texttt{RETURN VALUE : Array of strings}
+
+\subsection{\texttt{behaved_factor_code}}
+\subsubsection*{prototype}
+\begin{lstlisting}
+behaved_factor_code(destination_label, code_identifier)
+\end{lstlisting}
+\subsubsection*{argument type}
+\texttt{destination_label : Identifier}\\
+\texttt{code_identifier : Identifier}
+
+
+\newpage
+\section{Compile}
+\subsection{On Windows}
+\texttt{python.exe SBehavEdC.py <source_file>.sb}
+\end{document}

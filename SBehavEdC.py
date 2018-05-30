@@ -495,7 +495,7 @@ class Function:
             outfile.close()
 
 
-if True or len(sys.argv) == 2:
+if len(sys.argv) == 2:
     cfile = sys.argv[1]
     print("compiling :", cfile)
     c = Compiler(cfile)

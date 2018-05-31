@@ -1,0 +1,38 @@
+\documentclass{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+% load symbol definitions
+\usepackage{textcomp}
+% auto escape
+\usepackage{underscore}
+
+\usepackage[left=2.5cm,right=2.5cm,top=1cm,bottom=2cm]{geometry}
+
+% code
+\usepackage{listings}
+
+\title{SBehavEd language documentation}
+\author{Nils Laurent, 2A Apprentice at Ensimag}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Files}
+Use two files :\\
+\texttt{<file_name>.txt} containing BehavEd code\\
+\texttt{<file_name>.sb} containing SBehavEd code\\
+CAUTION : \texttt{file_name} must be indentical for the \texttt{.txt} and \texttt{.sb} files. This is how the compiler associate the BehavEd file to the SBehavEd file.
+
+\section{Compile}
+\subsection{On Windows}
+\texttt{python.exe SBehavEdC.py <source_file_name>.sb [<output_file>]}\\
+\vspace{1mm}\\
+If \texttt{<output_file>} is not given, the output will be \texttt{<source_file_name>.sb.out.txt}
+
+\section{IBIze}
+The compilation of the \texttt{<output_file>} BehavEd script is automated using the IBIze program.\\
+Set the path to IBIze in \texttt{SBehavedC.ini}
+\end{document}

@@ -5,6 +5,7 @@ from shutil import copyfile
 import sys
 import time
 import os
+import configparser
 import subprocess
 
 class EOFToken(object):
@@ -374,26 +375,29 @@ class TBehavedCode:
 
 
 class Compiler:
-    def __init__(self, file):
-        self.file = file
-        self.parser = Parser(file)
-        self.env = Env(file)
+    def __init__(self, in_file, out_file, IBIze):
+        self.in_file = in_file
+        self.out_file = out_file
+        self.IBIze = IBIze
+        self.parser = Parser(in_file)
+        self.env = Env(in_file, out_file)
+        self.BehavEd_file = os.path.basename(self.in_file).split('.')[0] + ".txt"
 
     def compile(self):
+        copyfile(self.BehavEd_file, self.out_file)
         tree = self.parser.parse()
         tree.gen_code(self.env)
         self.env.func.final_code_gen()
-        subprocess.check_call(["IBIze.exe", self.env.dest])
+        subprocess.check_call([IBIze, self.env.out_file])
 
 
 class Env:
-    def __init__(self, file):
+    def __init__(self, in_file, out_file):
         self.vars = {}
         self.code = {}
         self.func = Function(self)
-        self.file = file
-        self.BehavEd_file = os.path.basename(self.file).split('.')[0] + ".txt"
-        self.dest = None
+        self.in_file = in_file
+        self.out_file = out_file
 
     def set_var(self, name, value):
         self.vars[name] = value
@@ -402,16 +406,9 @@ class Env:
         if name in self.vars.keys():
             return self.vars[name]
         else:
-            message = "Undeclared variable used : "+ name
+            message = "Undeclared variable used : " + name
             print(message)
             raise Exception(message)
-
-    def set_dest(self, dest):
-        self.dest = dest
-    def get_dest(self):
-        if self.dest == None:
-            raise Exception("continue_file has to be called at the beginning of source file")
-        return  self.dest
 
     def set_code(self, name, code):
         self.code[name] = code
@@ -425,7 +422,7 @@ class Env:
 
 class Function:
     def __init__(self, env):
-        self.functions = ["continue_file", "caffect_multiple", "behaved_factor_code", "list_str"]
+        self.functions = ["caffect_multiple", "behaved_factor_code", "list_str"]
         self.affect_functions = ["list_str"]
         self.env = env
 
@@ -438,20 +435,17 @@ class Function:
     def exec(self, name, args):
         getattr(self, name)(args)
 
-    def continue_file(self, args):
-        self.env.set_dest(args[0])
-        copyfile(self.env.BehavEd_file, args[0])
-
+    # append code at the end of file
     def caffect_multiple(self, args):
         pre = '\naffect ( "'
         post = '", /*@AFFECT_TYPE*/ '+args[1]+' )\n' + '{\nrem ( "<<@'+args[2]+'>>" );\n}\n'
         value = self.env.get_value(args[0])
         if isinstance(value, list):
             for v in value:
-                with open(self.env.dest, "a") as myfile:
+                with open(self.env.out_file, "a") as myfile:
                     myfile.write(pre + v + post)
         elif isinstance(value, str):
-            with open(self.env.dest, "a") as myfile:
+            with open(self.env.out_file, "a") as myfile:
                 myfile.write(pre + value + post)
         else:
             raise Exception("caffect_multiple, type error")
@@ -469,7 +463,7 @@ class Function:
         dest_label = args[0]
         src_pattern = "<<"+args[1]+">>"
         code = ""
-        with open(self.env.BehavEd_file) as infile:
+        with open(self.env.out_file) as infile:
             copy = False
             for line in infile:
                 if src_pattern in line.strip():
@@ -480,7 +474,7 @@ class Function:
 
     def final_code_gen(self):
         buffer = ""
-        with open(self.env.dest) as infile:
+        with open(self.env.out_file) as infile:
             for line in infile:
                 is_dest = False
                 for label in self.env.code.keys():
@@ -490,15 +484,27 @@ class Function:
                         break
                 if not is_dest:
                     buffer += line
-        with open(self.env.dest, "w") as outfile:
+        with open(self.env.out_file, "w") as outfile:
             outfile.write(buffer)
             outfile.close()
 
 
-if len(sys.argv) == 2:
+argc = len(sys.argv)
+
+if argc >= 2 and argc <= 3:
+
+    if argc == 2:
+        ofile = sys.argv[1] + ".out.txt"
+    else:
+        ofile = sys.argv[2]
+
+    config = configparser.ConfigParser()
+    config.read("SBehavEdC.ini")
+    IBIze = config['paths']['IBIze']
     cfile = sys.argv[1]
     print("compiling :", cfile)
-    c = Compiler(cfile)
+    print("output :", ofile)
+    c = Compiler(cfile, ofile, IBIze)
     c.compile()
 else:
     print("usage :")

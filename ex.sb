@@ -1,6 +1,5 @@
 <<
 //test comment
-continue_file("ex_c.txt")
 troopers = ["st1", "st2"]
 troopers = list_str("str", 1, 10)
 behaved_factor_code(dest_label, src_label)
